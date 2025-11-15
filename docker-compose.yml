@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  server:
+    build:
+      context: ./тестовое_задание/tech-int3-server
+    container_name: avito-moderation-server
+    ports:
+      - '3001:3001'
+
+  client:
+    build:
+      context: ./client
+    container_name: avito-moderation-client
+    ports:
+      - '3000:80'
+    depends_on:
+      - server
+
+
