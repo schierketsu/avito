@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Button,
@@ -11,8 +11,20 @@ import {
   TableBody,
   TableCell,
   TableRow,
-  Skeleton
+  Skeleton,
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
+import StarIcon from '@mui/icons-material/Star';
+import HistoryIcon from '@mui/icons-material/History';
+import CheckIcon from '@mui/icons-material/Check';
+import CloseIcon from '@mui/icons-material/Close';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAdItem, useApproveAd, useRejectAd, useRequestChanges } from '@features/ads/hooks';
 import type { Advertisement, ModerationHistory } from '@shared/api/types';
@@ -60,7 +72,10 @@ const Gallery: React.FC<{ images: string[]; title: string }> = ({ images, title 
   const [main, ...rest] = list;
   return (
     <Stack spacing={2}>
-      <Typography variant="subtitle1">📷 Галерея (3+)</Typography>
+      <Stack direction="row" spacing={1} alignItems="center">
+        <PhotoLibraryIcon fontSize="small" />
+        <Typography variant="subtitle1">Галерея (3+)</Typography>
+      </Stack>
       <Box
         component="img"
         src={main}
@@ -100,7 +115,11 @@ const SellerBlock: React.FC<{ ad: Advertisement }> = ({ ad }) => {
       </Typography>
       <Stack spacing={0.5}>
         <Typography>{seller.name}</Typography>
-        <Typography color="text.secondary">Рейтинг: ⭐ {seller.rating}</Typography>
+        <Stack direction="row" spacing={0.5} alignItems="center">
+          <Typography color="text.secondary">Рейтинг:</Typography>
+          <StarIcon sx={{ fontSize: 16, color: 'warning.main' }} />
+          <Typography color="text.secondary">{seller.rating}</Typography>
+        </Stack>
         <Typography color="text.secondary">Кол-во объявлений: {seller.totalAds}</Typography>
         <Typography color="text.secondary">На сайте: {getTenure(seller.registeredAt)}</Typography>
       </Stack>
@@ -108,52 +127,108 @@ const SellerBlock: React.FC<{ ad: Advertisement }> = ({ ad }) => {
   );
 };
 
+const ACTION_CONFIG: Record<ModerationHistory['action'], { label: string; color: 'success' | 'error' | 'warning' }> =
+  {
+    approved: { label: 'Одобрено', color: 'success' },
+    rejected: { label: 'Отклонено', color: 'error' },
+    requestChanges: { label: 'Доработка', color: 'warning' }
+  };
+
 const ModerationHistoryBlock: React.FC<{ history: ModerationHistory[] }> = ({ history }) => {
+  const sortedHistory = [...history].sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+
   return (
-    <Paper
-      sx={{
-        p: 2,
-        bgcolor: 'warning.light',
-        borderColor: 'warning.main'
-      }}
-      variant="outlined"
-    >
-      <Typography variant="subtitle1" gutterBottom>
-        📄 История модерации
-      </Typography>
-      <Stack spacing={1.5}>
-        {history.map((item) => (
-          <Box
-            key={item.id}
-            sx={{
-              p: 1.5,
-              borderRadius: 1,
-              bgcolor: 'rgba(255,255,255,0.6)'
-            }}
-          >
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography fontWeight={500}>{item.moderatorName}</Typography>
-              <Chip label={item.action} size="small" />
-              <Typography variant="caption" color="text.secondary">
-                {formatDateTime(item.timestamp)}
-              </Typography>
-            </Stack>
-            {item.reason && (
-              <Typography variant="body2" mt={0.5}>
-                Причина: {item.reason}
-              </Typography>
-            )}
-            {item.comment && (
-              <Typography variant="body2" color="text.secondary">
-                Комментарий: {item.comment}
-              </Typography>
-            )}
-          </Box>
-        ))}
-        {history.length === 0 && (
-          <Typography color="text.secondary">Пока нет событий модерации для объявления.</Typography>
-        )}
+    <Paper sx={{ p: 2 }} variant="outlined">
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <HistoryIcon fontSize="small" />
+        <Typography variant="subtitle1">История модерации</Typography>
       </Stack>
+      {sortedHistory.length === 0 ? (
+        <Typography color="text.secondary">Пока нет событий модерации для объявления.</Typography>
+      ) : (
+        <Box sx={{ mt: 1, position: 'relative' }}>
+          {/* Непрерывная вертикальная линия таймлайна */}
+          <Box
+            sx={{
+              position: 'absolute',
+              left: 5,
+              top: 13,
+              bottom: 0,
+              width: 2,
+              bgcolor: 'divider',
+              zIndex: 0
+            }}
+          />
+          {sortedHistory.map((item, index) => {
+            const config = ACTION_CONFIG[item.action];
+            const isLast = index === sortedHistory.length - 1;
+
+            return (
+              <Box
+                key={item.id}
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'auto 1fr',
+                  columnGap: 2,
+                  alignItems: 'flex-start',
+                  position: 'relative',
+                  zIndex: 1,
+                  '&:not(:last-of-type)': {
+                    pb: 2
+                  }
+                }}
+              >
+                {/* Левая колонка — точка таймлайна */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    pt: 0.5
+                  }}
+                >
+                  <Box
+                    sx={(theme) => ({
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      bgcolor: theme.palette[config.color].main,
+                      boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+                      position: 'relative',
+                      zIndex: 2
+                    })}
+                  />
+                </Box>
+
+                {/* Правая колонка — контент события */}
+                <Box sx={{ pb: isLast ? 0 : 2 }}>
+                  <Stack spacing={0.5}>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Typography fontWeight={500}>{item.moderatorName}</Typography>
+                      <Chip label={config.label} size="small" color={config.color} variant="outlined" />
+                    </Stack>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatDateTime(item.timestamp)}
+                    </Typography>
+                    {item.reason && (
+                      <Typography variant="body2">
+                        Причина: {item.reason}
+                      </Typography>
+                    )}
+                    {item.comment && (
+                      <Typography variant="body2" color="text.secondary">
+                        Комментарий: {item.comment}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      )}
     </Paper>
   );
 };
@@ -170,6 +245,7 @@ export const ItemPage: React.FC = () => {
   const rejectMutation = useRejectAd();
   const requestChangesMutation = useRequestChanges();
   const [rejectOpen, setRejectOpen] = React.useState(false);
+  const [hotkeyHint, setHotkeyHint] = React.useState<string | null>(null);
 
   const listIds = state.listIds;
   const currentIndex = listIds?.indexOf(adId) ?? -1;
@@ -203,6 +279,42 @@ export const ItemPage: React.FC = () => {
       comment: 'Вернуть на доработку'
     });
   };
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isInput =
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.getAttribute('contenteditable') === 'true');
+      if (isInput) return;
+
+      if (event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        void handleApprove();
+        setHotkeyHint('Объявление одобрено (горячая клавиша A).');
+      }
+
+      if (event.key.toLowerCase() === 'd') {
+        event.preventDefault();
+        setRejectOpen(true);
+      }
+
+      if (event.key === 'ArrowLeft' && prevId) {
+        event.preventDefault();
+        navigate(`/item/${prevId}`, { state });
+      }
+
+      if (event.key === 'ArrowRight' && nextId) {
+        event.preventDefault();
+        navigate(`/item/${nextId}`, { state });
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [adId, prevId, nextId, state, navigate]);
 
   if (isLoading) {
     return (
@@ -256,7 +368,7 @@ export const ItemPage: React.FC = () => {
               </Typography>
               <Table size="small">
                 <TableBody>
-                  {Object.entries(ad.characteristics).map(([key, value]) => (
+                  {Object.entries(ad.characteristics).map(([key, value]: [string, string]) => (
                     <TableRow key={key}>
                       <TableCell sx={{ width: '30%' }}>{key}</TableCell>
                       <TableCell>{value}</TableCell>
@@ -286,60 +398,96 @@ export const ItemPage: React.FC = () => {
         </Grid>
       </Grid>
 
-      <Stack spacing={2}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <Button
-            variant="contained"
-            color="success"
-            onClick={handleApprove}
-            disabled={approveMutation.isPending}
-          >
-            ✓ Одобрить
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => setRejectOpen(true)}
-            disabled={rejectMutation.isPending}
-          >
-            ✗ Отклонить
-          </Button>
-          <Button
-            variant="contained"
-            color="warning"
-            onClick={handleRequestChanges}
-            disabled={requestChangesMutation.isPending}
-          >
-            ↻ Доработка
-          </Button>
-        </Stack>
+      <Paper
+        variant="outlined"
+        sx={{
+          position: 'sticky',
+          bottom: 0,
+          p: 2,
+          bgcolor: 'background.paper',
+          borderTop: (theme) => `1px solid ${theme.palette.divider}`
+        }}
+      >
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2} flexWrap="wrap">
+            <Tooltip title="Горячая клавиша A — одобрить объявление">
+              <span>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={handleApprove}
+                  disabled={approveMutation.isPending}
+                  startIcon={<CheckIcon />}
+                >
+                  Одобрить
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title="Горячая клавиша D — отклонить объявление">
+              <span>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => setRejectOpen(true)}
+                  disabled={rejectMutation.isPending}
+                  startIcon={<CloseIcon />}
+                >
+                  Отклонить
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title="Вернуть на доработку без отклонения">
+              <span>
+                <Button
+                  variant="contained"
+                  color="warning"
+                  onClick={handleRequestChanges}
+                  disabled={requestChangesMutation.isPending}
+                  startIcon={<RefreshIcon />}
+                >
+                  Доработка
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
 
-        <Stack direction="row" spacing={2} alignItems="center">
-          <Button onClick={handleBackToList} variant="text">
-            ← К списку
-          </Button>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              disabled={!prevId}
-              component={Link}
-              to={prevId ? `/item/${prevId}` : '#'}
-              state={state}
-            >
-              ◄ Пред
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Button onClick={handleBackToList} variant="text" startIcon={<ArrowBackIcon />}>
+              К списку
             </Button>
-            <Button
-              variant="outlined"
-              disabled={!nextId}
-              component={Link}
-              to={nextId ? `/item/${nextId}` : '#'}
-              state={state}
-            >
-              След ►
-            </Button>
+            <Stack direction="row" spacing={1}>
+              <Tooltip title="Горячая клавиша стрелка влево — предыдущее объявление">
+                <span>
+                  <Button
+                    variant="outlined"
+                    disabled={!prevId}
+                    component={Link}
+                    to={prevId ? `/item/${prevId}` : '#'}
+                    state={state}
+                    startIcon={<ChevronLeftIcon />}
+                  >
+                    Пред
+                  </Button>
+                </span>
+              </Tooltip>
+              <Tooltip title="Горячая клавиша стрелка вправо — следующее объявление">
+                <span>
+                  <Button
+                    variant="outlined"
+                    disabled={!nextId}
+                    component={Link}
+                    to={nextId ? `/item/${nextId}` : '#'}
+                    state={state}
+                    endIcon={<ChevronRightIcon />}
+                  >
+                    След
+                  </Button>
+                </span>
+              </Tooltip>
+            </Stack>
           </Stack>
         </Stack>
-      </Stack>
+      </Paper>
 
       <RejectModal
         open={rejectOpen}
@@ -347,6 +495,16 @@ export const ItemPage: React.FC = () => {
         onSubmit={handleReject}
         loading={rejectMutation.isPending}
       />
+      <Snackbar
+        open={Boolean(hotkeyHint)}
+        autoHideDuration={3000}
+        onClose={() => setHotkeyHint(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setHotkeyHint(null)}>
+          {hotkeyHint}
+        </Alert>
+      </Snackbar>
     </Stack>
   );
 };

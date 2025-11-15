@@ -16,8 +16,15 @@ import {
   Grid,
   Skeleton,
   Pagination,
-  Checkbox
+  Checkbox,
+  Tooltip,
+  Snackbar,
+  Alert
 } from '@mui/material';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import UpdateIcon from '@mui/icons-material/Update';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { useAdsList, useApproveAd, useRejectAd } from '@features/ads/hooks';
 import type { Advertisement, AdStatus } from '@shared/api/types';
@@ -59,7 +66,7 @@ const AdCard: React.FC<{
       }}
       variant="outlined"
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mr: 1 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1, mr: 1 }}>
         <Checkbox checked={selected} onChange={onToggleSelect} />
         <Box
           component="img"
@@ -77,6 +84,7 @@ const AdCard: React.FC<{
             label={ad.priority === 'urgent' ? 'Срочно' : 'Обычное'}
             color={ad.priority === 'urgent' ? 'error' : 'default'}
             size="small"
+            icon={ad.priority === 'urgent' ? <LocalFireDepartmentIcon fontSize="small" /> : undefined}
           />
         </Box>
         <Typography variant="subtitle1" color="primary">
@@ -100,16 +108,20 @@ const AdCard: React.FC<{
           <Chip label={formatDate(ad.createdAt)} size="small" variant="outlined" />
         </Box>
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <Button
-          component={Link}
-          to={`/item/${ad.id}`}
-          state={{ listIds, from }}
-          variant="contained"
-          endIcon={<span>→</span>}
-        >
-          Открыть
-        </Button>
+      <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <Tooltip title="Открыть объявление в детальном просмотре">
+          <Button
+            component={Link}
+            to={`/item/${ad.id}`}
+            state={{ listIds, from }}
+            variant="outlined"
+            color="primary"
+            size="small"
+            endIcon={<OpenInNewIcon fontSize="small" />}
+          >
+            Открыть
+          </Button>
+        </Tooltip>
       </Box>
     </Paper>
   );
@@ -120,6 +132,7 @@ export const ListPage: React.FC = () => {
   const location = useLocation();
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [hotkeyHint, setHotkeyHint] = useState<string | null>(null);
   const approveMutation = useApproveAd();
   const rejectMutation = useRejectAd();
   const searchInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -155,6 +168,24 @@ export const ListPage: React.FC = () => {
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [data]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: string[] = [];
+    if (statusParams.length) {
+      chips.push('Статус');
+    }
+    if (categoryId) {
+      const categoryName = categories.find((c) => String(c.id) === categoryId)?.name ?? 'Категория';
+      chips.push(categoryName);
+    }
+    if (minPrice || maxPrice) {
+      chips.push(`Цена ${minPrice || '…'}–${maxPrice || '…'}`);
+    }
+    if (search) {
+      chips.push(`Поиск: "${search}"`);
+    }
+    return chips;
+  }, [statusParams.length, categoryId, categories, minPrice, maxPrice, search]);
 
   const handleStatusChange = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value as unknown as AdStatus[];
@@ -215,6 +246,10 @@ export const ListPage: React.FC = () => {
   };
 
   const handleBulkApprove = async () => {
+    if (!selectedIds.length) {
+      setHotkeyHint('Сначала выберите объявления для массового действия.');
+      return;
+    }
     for (const id of selectedIds) {
       // eslint-disable-next-line no-await-in-loop
       await approveMutation.mutateAsync(id);
@@ -223,7 +258,10 @@ export const ListPage: React.FC = () => {
   };
 
   const handleBulkReject = () => {
-    if (!selectedIds.length) return;
+    if (!selectedIds.length) {
+      setHotkeyHint('Сначала выберите объявления для массового действия.');
+      return;
+    }
     setRejectOpen(true);
   };
 
@@ -263,12 +301,12 @@ export const ListPage: React.FC = () => {
         }
       }
 
-      if (event.key.toLowerCase() === 'a' && selectedIds.length) {
+      if (event.key.toLowerCase() === 'a') {
         event.preventDefault();
         void handleBulkApprove();
       }
 
-      if (event.key.toLowerCase() === 'd' && selectedIds.length) {
+      if (event.key.toLowerCase() === 'd') {
         event.preventDefault();
         handleBulkReject();
       }
@@ -281,8 +319,8 @@ export const ListPage: React.FC = () => {
   return (
     <Stack spacing={3}>
       <Paper sx={{ p: 2 }} variant="outlined">
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <FormControl sx={{ minWidth: 180 }}>
+        <Stack direction="row" spacing={2} flexWrap="nowrap" alignItems="center">
+          <FormControl sx={{ minWidth: 180 }} size="small">
             <InputLabel id="status-label">Статус</InputLabel>
             <Select
               multiple
@@ -350,18 +388,39 @@ export const ListPage: React.FC = () => {
             size="small"
             value={search}
             onChange={(e) => handleSimpleField('search', e.target.value)}
-            sx={{ minWidth: 220 }}
+            sx={{ minWidth: 180 }}
             inputRef={searchInputRef}
           />
 
-          <Button onClick={handleResetFilters} variant="text">
-            Сбросить фильтры
+          <Button onClick={handleResetFilters} variant="text" size="small">
+            <RestartAltIcon />
           </Button>
         </Stack>
+        {activeFilterChips.length > 0 && (
+          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {activeFilterChips.map((label) => (
+              <Chip key={label} label={label} size="small" color="primary" variant="outlined" />
+            ))}
+          </Box>
+        )}
       </Paper>
 
       <Paper sx={{ p: 2 }} variant="outlined">
-        <Stack direction="row" spacing={2} mb={2} flexWrap="wrap" alignItems="center">
+        <Stack
+          direction="row"
+          spacing={2}
+          mb={2}
+          flexWrap="wrap"
+          alignItems="center"
+          sx={{
+            position: 'sticky',
+            top: -8,
+            zIndex: 1,
+            bgcolor: 'background.paper',
+            pb: 1,
+            pt: 1
+          }}
+        >
           <FormControl sx={{ minWidth: 160 }} size="small">
             <InputLabel id="sort-by-label">Сортировка</InputLabel>
             <Select
@@ -391,42 +450,57 @@ export const ListPage: React.FC = () => {
             </Select>
           </FormControl>
 
+          <Tooltip title="Обновить список объявлений">
+            <Button variant="text" size="small" onClick={() => void refetch()}>
+              <UpdateIcon />
+            </Button>
+          </Tooltip>
+
           <Box sx={{ flexGrow: 1 }} />
 
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={handleSelectAll}
-            disabled={!data?.ads.length}
-          >
-            {data && selectedIds.length === data.ads.length
-              ? 'Снять выделение'
-              : 'Выбрать все на странице'}
-          </Button>
+          <Tooltip title="Выделить все объявления на текущей странице">
+            <span>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleSelectAll}
+                disabled={!data?.ads.length}
+              >
+                {data && selectedIds.length === data.ads.length
+                  ? 'Снять выделение'
+                  : 'Выбрать все на странице'}
+              </Button>
+            </span>
+          </Tooltip>
           <Typography variant="body2" color="text.secondary">
             Выбрано: {selectedIds.length}
           </Typography>
-          <Button
-            variant="contained"
-            size="small"
-            color="success"
-            onClick={handleBulkApprove}
-            disabled={!selectedIds.length || approveMutation.isPending}
-          >
-            Массовое одобрение
-          </Button>
-          <Button
-            variant="contained"
-            size="small"
-            color="error"
-            onClick={handleBulkReject}
-            disabled={!selectedIds.length || rejectMutation.isPending}
-          >
-            Массовое отклонение
-          </Button>
-          <Button variant="text" size="small" onClick={() => void refetch()}>
-            Обновить
-          </Button>
+          <Tooltip title="Gорячая клавиша A — одобрить выбранные">
+            <span>
+              <Button
+                variant="contained"
+                size="small"
+                color="success"
+                onClick={handleBulkApprove}
+                disabled={approveMutation.isPending}
+              >
+                Массовое одобрение
+              </Button>
+            </span>
+          </Tooltip>
+          <Tooltip title="Горячая клавиша D — отклонить выбранные">
+            <span>
+              <Button
+                variant="contained"
+                size="small"
+                color="error"
+                onClick={handleBulkReject}
+                disabled={rejectMutation.isPending}
+              >
+                Массовое отклонение
+              </Button>
+            </span>
+          </Tooltip>
         </Stack>
 
         {isLoading && (
@@ -488,6 +562,16 @@ export const ListPage: React.FC = () => {
         onSubmit={handleBulkRejectSubmit}
         loading={rejectMutation.isPending}
       />
+      <Snackbar
+        open={Boolean(hotkeyHint)}
+        autoHideDuration={3000}
+        onClose={() => setHotkeyHint(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="info" variant="filled" onClose={() => setHotkeyHint(null)}>
+          {hotkeyHint}
+        </Alert>
+      </Snackbar>
     </Stack>
   );
 };

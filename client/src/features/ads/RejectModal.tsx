@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -10,7 +10,8 @@ import {
   RadioGroup,
   TextField,
   Stack,
-  Typography
+  Typography,
+  FormHelperText
 } from '@mui/material';
 
 const REASONS = [
@@ -21,6 +22,16 @@ const REASONS = [
   'Подозрение на мошенничество',
   'Другое'
 ] as const;
+
+const REASON_DESCRIPTIONS: Record<string, string> = {
+  'Запрещенный товар': 'Например, оружие, наркотики, поддельные документы и другие запрещённые позиции.',
+  'Неверная категория': 'Товар размещён не в той категории, что усложняет поиск для покупателей.',
+  'Некорректное описание': 'Описание не раскрывает суть товара, содержит ошибки или вводит в заблуждение.',
+  'Проблемы с фото': 'Фотографии низкого качества, содержат посторонние элементы или нарушают правила.',
+  'Подозрение на мошенничество':
+    'Есть признаки обмана: слишком низкая цена, просьба перевести деньги заранее и т.п.',
+  Другое: 'Опишите вашу причину в свободной форме.'
+};
 
 type RejectReason = (typeof REASONS)[number];
 
@@ -35,6 +46,13 @@ export const RejectModal: React.FC<RejectModalProps> = ({ open, onClose, onSubmi
   const [reason, setReason] = useState<RejectReason | ''>('');
   const [comment, setComment] = useState('');
   const [touched, setTouched] = useState(false);
+  const firstRadioRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (open && firstRadioRef.current) {
+      firstRadioRef.current.focus();
+    }
+  }, [open]);
 
   const handleSubmit = () => {
     setTouched(true);
@@ -69,10 +87,23 @@ export const RejectModal: React.FC<RejectModalProps> = ({ open, onClose, onSubmi
               setTouched(false);
             }}
           >
-            {REASONS.map((r) => (
-              <FormControlLabel key={r} value={r} control={<Radio />} label={r} />
+            {REASONS.map((r, index) => (
+              <FormControlLabel
+                key={r}
+                value={r}
+                control={
+                  <Radio
+                    inputRef={index === 0 ? firstRadioRef : undefined}
+                    inputProps={{ 'aria-label': r }}
+                  />
+                }
+                label={r}
+              />
             ))}
           </RadioGroup>
+          {reason && (
+            <FormHelperText>{REASON_DESCRIPTIONS[reason] ?? 'Уточните причину отклонения.'}</FormHelperText>
+          )}
           {reason === 'Другое' && (
             <TextField
               label="Комментарий"

@@ -33,14 +33,79 @@ export const ThemeModeProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         palette: {
           mode,
           primary: {
-            main: '#005FF9'
+            // Авито синий
+            main: '#02ABFF'
           },
           secondary: {
-            main: '#FF9900'
+            // Авито фиолетовый
+            main: '#985EEC'
+          },
+          success: {
+            // Авито зелёный
+            main: '#02E161'
+          },
+          error: {
+            // Авито красный
+            main: '#FF3D52'
+          },
+          background: {
+            default: mode === 'light' ? '#f5f7fa' : '#121212',
+            paper: mode === 'light' ? '#ffffff' : '#1e1e1e'
           }
         },
         shape: {
           borderRadius: 10
+        },
+        typography: {
+          fontFamily: '"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+          h4: {
+            fontWeight: 600,
+            letterSpacing: 0.2
+          },
+          h5: {
+            fontWeight: 600
+          },
+          subtitle1: {
+            fontWeight: 500
+          },
+          button: {
+            textTransform: 'none',
+            fontWeight: 500
+          }
+        },
+        components: {
+          MuiButton: {
+            defaultProps: {
+              disableElevation: true
+            },
+            styleOverrides: {
+              root: {
+                borderRadius: 999,
+                paddingInline: 18
+              }
+            }
+          },
+          MuiPaper: {
+            styleOverrides: {
+              root: {
+                borderRadius: 12
+              }
+            }
+          },
+          MuiCard: {
+            styleOverrides: {
+              root: {
+                borderRadius: 16
+              }
+            }
+          },
+          MuiTooltip: {
+            styleOverrides: {
+              tooltip: {
+                fontSize: 12
+              }
+            }
+          }
         }
       }),
     [mode]
