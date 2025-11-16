@@ -401,92 +401,113 @@ export const ItemPage: React.FC = () => {
       <Paper
         variant="outlined"
         sx={{
-          position: 'sticky',
+          position: 'fixed',
+          left: 0,
+          right: 0,
           bottom: 0,
-          p: 2,
+          py: 2,
+          px: 2,
           bgcolor: 'background.paper',
-          borderTop: (theme) => `1px solid ${theme.palette.divider}`
+          borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+          boxShadow: (theme) => `0 -4px 16px ${theme.palette.mode === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.08)'}`,
+          zIndex: (theme) => theme.zIndex.drawer
         }}
       >
-        <Stack spacing={2}>
-          <Stack direction="row" spacing={2} flexWrap="wrap">
-            <Tooltip title="Горячая клавиша A — одобрить объявление">
-              <span>
-                <Button
-                  variant="contained"
-                  color="success"
-                  onClick={handleApprove}
-                  disabled={approveMutation.isPending}
-                  startIcon={<CheckIcon />}
-                >
-                  Одобрить
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip title="Горячая клавиша D — отклонить объявление">
-              <span>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => setRejectOpen(true)}
-                  disabled={rejectMutation.isPending}
-                  startIcon={<CloseIcon />}
-                >
-                  Отклонить
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip title="Вернуть на доработку без отклонения">
-              <span>
-                <Button
-                  variant="contained"
-                  color="warning"
-                  onClick={handleRequestChanges}
-                  disabled={requestChangesMutation.isPending}
-                  startIcon={<RefreshIcon />}
-                >
-                  Доработка
-                </Button>
-              </span>
-            </Tooltip>
-          </Stack>
+        <Box
+          sx={{
+            maxWidth: 1440,
+            mx: 'auto',
+            width: '100%'
+          }}
+        >
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={8}>
+              <Stack direction="row" spacing={2}>
+                <Tooltip title="Горячая клавиша A — одобрить объявление">
+                  <span style={{ flex: 1 }}>
+                    <Button
+                      fullWidth
+                      size="large"
+                      variant="contained"
+                      color="success"
+                      onClick={handleApprove}
+                      disabled={approveMutation.isPending}
+                      startIcon={<CheckIcon />}
+                    >
+                      Одобрить
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Горячая клавиша D — отклонить объявление">
+                  <span style={{ flex: 1 }}>
+                    <Button
+                      fullWidth
+                      size="large"
+                      variant="contained"
+                      color="error"
+                      onClick={() => setRejectOpen(true)}
+                      disabled={rejectMutation.isPending}
+                      startIcon={<CloseIcon />}
+                    >
+                      Отклонить
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Вернуть на доработку без отклонения">
+                  <span style={{ flex: 1 }}>
+                    <Button
+                      fullWidth
+                      size="large"
+                      variant="contained"
+                      color="warning"
+                      onClick={handleRequestChanges}
+                      disabled={requestChangesMutation.isPending}
+                      startIcon={<RefreshIcon />}
+                    >
+                      Доработка
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Stack>
+            </Grid>
 
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Button onClick={handleBackToList} variant="text" startIcon={<ArrowBackIcon />}>
-              К списку
-            </Button>
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Горячая клавиша стрелка влево — предыдущее объявление">
-                <span>
-                  <Button
-                    variant="outlined"
-                    disabled={!prevId}
-                    component={Link}
-                    to={prevId ? `/item/${prevId}` : '#'}
-                    state={state}
-                    startIcon={<ChevronLeftIcon />}
-                  >
-                    Пред
-                  </Button>
-                </span>
-              </Tooltip>
-              <Tooltip title="Горячая клавиша стрелка вправо — следующее объявление">
-                <span>
-                  <Button
-                    variant="outlined"
-                    disabled={!nextId}
-                    component={Link}
-                    to={nextId ? `/item/${nextId}` : '#'}
-                    state={state}
-                    endIcon={<ChevronRightIcon />}
-                  >
-                    След
-                  </Button>
-                </span>
-              </Tooltip>
-            </Stack>
-          </Stack>
-        </Stack>
+            <Grid item xs={12} md={4}>
+              <Stack direction="row" spacing={2} justifyContent="flex-end" alignItems="center">
+                <Button onClick={handleBackToList} variant="text" startIcon={<ArrowBackIcon />}>
+                  К списку
+                </Button>
+                <Tooltip title="Горячая клавиша стрелка влево — предыдущее объявление">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      disabled={!prevId}
+                      component={Link}
+                      to={prevId ? `/item/${prevId}` : '#'}
+                      state={state}
+                      startIcon={<ChevronLeftIcon />}
+                    >
+                      Пред
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Горячая клавиша стрелка вправо — следующее объявление">
+                  <span>
+                    <Button
+                      variant="outlined"
+                      disabled={!nextId}
+                      component={Link}
+                      to={nextId ? `/item/${nextId}` : '#'}
+                      state={state}
+                      endIcon={<ChevronRightIcon />}
+                    >
+                      След
+                    </Button>
+                  </span>
+                </Tooltip>
+              </Stack>
+            </Grid>
+          </Grid>
+        </Box>
       </Paper>
 
       <RejectModal

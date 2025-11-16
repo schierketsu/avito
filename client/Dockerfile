@@ -1,22 +1,19 @@
-FROM node:20-alpine AS build
+FROM node:20-alpine
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-ENV VITE_API_BASE_URL=http://server:3001/api/v1
-
+# Build static assets
 RUN npm run build
 
-FROM nginx:alpine
+ENV PORT=5173
+EXPOSE 5173
 
-COPY --from=build /app/dist /usr/share/nginx/html
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+# Serve the built app
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
 
 

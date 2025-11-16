@@ -82,7 +82,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </Toolbar>
         {isFetching > 0 && <LinearProgress sx={{ position: 'absolute', left: 0, right: 0, bottom: 0 }} />}
       </AppBar>
-      <Container maxWidth="lg" sx={{ py: 3 }}>
+      <Container maxWidth="xl" sx={{ py: 3 }}>
         <Typography variant="h4" gutterBottom>
           {title}
         </Typography>

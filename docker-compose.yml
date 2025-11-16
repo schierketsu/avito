@@ -1,20 +1,31 @@
-version: '3.9'
-
 services:
   server:
     build:
       context: ./тестовое_задание/tech-int3-server
-    container_name: avito-moderation-server
+    container_name: avito-tech-int3-server
+    environment:
+      - PORT=3001
+      # Allow all origins by default; adjust as needed
+      - CORS_ORIGIN=*
     ports:
-      - '3001:3001'
+      - "3001:3001"
+    restart: unless-stopped
 
   client:
     build:
       context: ./client
-    container_name: avito-moderation-client
+    container_name: avito-client
+    environment:
+      # Client will call the server by its compose service name
+      - VITE_API_BASE_URL=http://server:3001/api/v1
     ports:
-      - '3000:80'
+      - "5173:5173"
     depends_on:
       - server
+    restart: unless-stopped
+
+networks:
+  default:
+    name: avito-net
 
 

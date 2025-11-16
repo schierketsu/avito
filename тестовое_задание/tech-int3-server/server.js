@@ -4,10 +4,11 @@ const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || true; // allow all by default
 
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: CORS_ORIGIN,
     credentials: false
   })
 );

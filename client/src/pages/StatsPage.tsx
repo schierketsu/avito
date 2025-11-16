@@ -153,26 +153,57 @@ export const StatsPage: React.FC = () => {
   );
 
   const handleExportCsv = () => {
-    const lines: string[] = [];
-    lines.push('Метрика,Значение');
+    // Экспорт в формат HTML-таблицы с расширением .xls — Excel открывает
+    // и корректно обрабатывает UTF-8 с метой без дополнительных библиотек.
+    const escapeHtml = (s: string | number) =>
+      String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const rows: string[] = [];
+    // Блок метрик
+    rows.push(
+      `<tr><th style="text-align:left">Метрика</th><th style="text-align:left">Значение</th></tr>`
+    );
     if (summary) {
-      lines.push(`Проверено,${summary.totalReviewed}`);
-      lines.push(`Одобрено,${summary.approvedPercentage}%`);
-      lines.push(`Отклонено,${summary.rejectedPercentage}%`);
-      lines.push(`На доработке,${summary.requestChangesPercentage}%`);
-      lines.push(`Ср. время,${summary.averageReviewTime} мин`);
+      rows.push(`<tr><td>Проверено</td><td>${escapeHtml(summary.totalReviewed)}</td></tr>`);
+      rows.push(`<tr><td>Одобрено</td><td>${escapeHtml(`${summary.approvedPercentage}%`)}</td></tr>`);
+      rows.push(`<tr><td>Отклонено</td><td>${escapeHtml(`${summary.rejectedPercentage}%`)}</td></tr>`);
+      rows.push(
+        `<tr><td>На доработке</td><td>${escapeHtml(`${summary.requestChangesPercentage}%`)}</td></tr>`
+      );
+      rows.push(
+        `<tr><td>Ср. время</td><td>${escapeHtml(`${summary.averageReviewTime} мин`)}</td></tr>`
+      );
     }
-    lines.push('');
-    lines.push('Дата,Одобрено,Отклонено,На доработке');
+    // Пустая строка-разделитель
+    rows.push(`<tr><td style="height:8px"></td><td></td></tr>`);
+    // Блок активности
+    rows.push(
+      `<tr><th style="text-align:left">Дата</th><th style="text-align:left">Одобрено</th><th style="text-align:left">Отклонено</th><th style="text-align:left">На доработке</th></tr>`
+    );
     activity.forEach((a: ActivityData) => {
-      lines.push(`${a.date},${a.approved},${a.rejected},${a.requestChanges}`);
+      rows.push(
+        `<tr><td>${escapeHtml(a.date)}</td><td>${escapeHtml(a.approved)}</td><td>${escapeHtml(
+          a.rejected
+        )}</td><td>${escapeHtml(a.requestChanges)}</td></tr>`
+      );
     });
-    const csv = lines.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+    const html =
+      '\uFEFF' +
+      `<!DOCTYPE html><html><head><meta charset="utf-8" /><title>moderation-stats</title></head><body><table border="1" cellspacing="0" cellpadding="4">${rows.join(
+        ''
+      )}</table></body></html>`;
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `moderation-stats-${period}.csv`);
+    link.setAttribute('download', `moderation-stats-${period}.xls`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
